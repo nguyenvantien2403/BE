@@ -12,6 +12,7 @@ using Sales.Model.Orders;
 using Sale.Service.Dtos.OrdersDto;
 using Sale.Service.ProductService;
 using Sale.Service.Dtos.CartDto;
+using Microsoft.AspNetCore.Identity;
 
 namespace Sales.Controllers
 {
@@ -22,16 +23,19 @@ namespace Sales.Controllers
 		private readonly IMapper _mapper;
 		private readonly IOrdersService _ordersService;
 		private readonly IProductService _productService;
-		public OrdersController(IMapper mapper, IOrdersService ordersService, IProductService productService = null)
-		{
-			_mapper = mapper;
-			_ordersService = ordersService;
-			_productService = productService;
-		}
+        private readonly UserManager<IdentityUser> _user;
+
+        public OrdersController(IMapper mapper, IOrdersService ordersService, IProductService productService = null, UserManager<IdentityUser> user = null)
+        {
+            _mapper = mapper;
+            _ordersService = ordersService;
+            _productService = productService;
+            _user = user;
+        }
 
 
 
-		[HttpPost("create")]
+        [HttpPost("create")]
 		[Authorize(Roles = "Admin,User")]
 		public async Task<IActionResult> Create([FromBody] CreateVM entity)
 		{
@@ -40,8 +44,8 @@ namespace Sales.Controllers
 				var obj = new Orders();
 				obj = _mapper.Map<Orders>(entity);
 				obj.CreatedDate = DateTime.Now;
-
-
+				obj.lastName = "";
+				obj.orderNotes = "";
 				if (entity.Carts != null && entity.Carts.Count > 0)
 				{
                     foreach (var item in entity.Carts)
@@ -267,6 +271,7 @@ namespace Sales.Controllers
 					totalPrice = q.totalPrice,
 					firstName = q.firstName,
 					lastName = q.lastName,
+					UserId = q.UserId, 
 					email = q.email,
 					orderNotes = q.orderNotes,
 					cartDtos = q.Carts.Select(x => new CartDto
@@ -274,13 +279,20 @@ namespace Sales.Controllers
 						count = x.count,
 						Id = x.Id,
 						produtId = x.ProductId,
-						ProductName = _productService.GetQueryable().Where(p => p.Id == x.ProductId).FirstOrDefault().ProductName,
+						ProductName = _productService.GetQueryable().Where	(p => p.Id == x.ProductId).FirstOrDefault().ProductName,
 						Price = _productService.GetQueryable().Where(p => p.Id == x.ProductId).FirstOrDefault().ProdcutPrice
 					}).ToList()
 				}).FirstOrDefault();
+
+
 				if (Orders != null)
 				{
-					return StatusCode(StatusCodes.Status200OK, new ResponseWithDataDto<OrdersDto>
+					var username = _user.FindByIdAsync(Orders.UserId.ToString())?.Result == null ? "" : _user.FindByIdAsync(Orders.UserId.ToString())?.Result.UserName;
+					Orders.Username = username;
+				}
+				if (Orders != null)
+				{
+					return StatusCode(StatusCodes.Status200OK, new ResponseWithDataDto<dynamic>
 					{
 						Data = Orders,
 						Status = StatusConstant.SUCCESS,

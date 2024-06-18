@@ -15,7 +15,8 @@ namespace Sales.Model.Orders
 		public DateTime? Createat { get; set; }
 		public string Status {get; set;}
 		public string lastName { get; set; }
-		public string firstName { get; set; }
+        public string Username { get; set; }
+        public string firstName { get; set; }
 		public double totalPrice { get; set; }
 		public DateTime? ShippingDate { get; set; }
 		public string address { get; set; }
